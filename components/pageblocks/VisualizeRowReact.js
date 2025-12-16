@@ -85,6 +85,25 @@ export default function VisualizeRowReact({
   const isDisabled = showGadgets || showReduction;
   const totalSteps = problemData.length;
 
+  const normalizeVisualizationData = (rawData) => {
+    if (!rawData) return [];
+
+    const normalizeEntry = (entry) => {
+      if (typeof entry === "string") {
+        return { openQasm: entry };
+      }
+      if (entry?.circuit && !entry.openQasm) {
+        // Map backend circuit field to the openQasm key expected by QuantumCircuitVis
+        return { ...entry, openQasm: entry.circuit };
+      }
+      return entry;
+    };
+
+    return Array.isArray(rawData)
+      ? rawData.map(normalizeEntry)
+      : [normalizeEntry(rawData)];
+  };
+
   // Track when problem instance is ready
   useEffect(() => {
     if (problemInstance && problemName) setInstanceReady(true);
@@ -103,7 +122,7 @@ export default function VisualizeRowReact({
     const fetchVisualization = async () => {
       try {
         const data = await requestReductionVisualization(url, chosenReductionType, problemInstance, chosenSolver);
-        setProblemReductionData(data ?? []);
+        setProblemReductionData(normalizeVisualizationData(data));
       } catch (err) {
         console.error("Failed to load visualization:", err);
         setProblemReductionData([]);
@@ -129,7 +148,7 @@ export default function VisualizeRowReact({
         const data = await requestVisualization(url, chosenVisualization, problemInstance, chosenSolver);
         if (!isCurrent) return;
 
-        let processedData = data ? [...data] : [];
+        let processedData = normalizeVisualizationData(data);
 
         // If showReduction is true, only keep first and last elements
         if (showReduction && processedData.length > 1) {
@@ -327,3 +346,7 @@ export default function VisualizeRowReact({
     </ProblemSection>
   );
 }
+
+
+
+
